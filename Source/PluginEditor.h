@@ -3,20 +3,21 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
-//== pastel-blue look, swap these hex values for your exact Vocoduh palette ====
+//== pastel goth look: dark navy surfaces, pastel pink/aqua accents ============
 class BlueLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     BlueLookAndFeel()
     {
-        setColour (juce::ComboBox::backgroundColourId,            juce::Colour (0xffEAF3FB));
-        setColour (juce::ComboBox::textColourId,                  juce::Colour (0xff4A6D8C));
-        setColour (juce::ComboBox::outlineColourId,               juce::Colour (0xffBAD8EE));
-        setColour (juce::ComboBox::arrowColourId,                 juce::Colour (0xff7FA8C9));
-        setColour (juce::PopupMenu::backgroundColourId,           juce::Colour (0xffF5FAFF));
-        setColour (juce::PopupMenu::highlightedBackgroundColourId,juce::Colour (0xffBAD8EE));
-        setColour (juce::PopupMenu::textColourId,                 juce::Colour (0xff4A6D8C));
-        setColour (juce::Label::textColourId,                     juce::Colour (0xff4A6D8C));
+        setColour (juce::ComboBox::backgroundColourId,            juce::Colour (0xff252B4A));
+        setColour (juce::ComboBox::textColourId,                  juce::Colour (0xffE7EBFF));
+        setColour (juce::ComboBox::outlineColourId,               juce::Colour (0xff454C7A));
+        setColour (juce::ComboBox::arrowColourId,                 juce::Colour (0xffF48FB8));
+        setColour (juce::PopupMenu::backgroundColourId,           juce::Colour (0xff1E2340));
+        setColour (juce::PopupMenu::highlightedBackgroundColourId,juce::Colour (0xff3A4066));
+        setColour (juce::PopupMenu::textColourId,                 juce::Colour (0xffE7EBFF));
+        setColour (juce::PopupMenu::highlightedTextColourId,      juce::Colour (0xffFFFFFF));
+        setColour (juce::Label::textColourId,                     juce::Colour (0xff9AA3CF));
     }
 };
 
@@ -59,10 +60,16 @@ private:
         return 1.0f;
     }
 
-    void drawHandle (juce::Graphics& g, float x, float y, juce::Colour fill, juce::Colour edge)
+    // dark bead with a glowing pastel ring
+    void drawHandle (juce::Graphics& g, float x, float y, juce::Colour ring)
     {
-        g.setColour (edge); g.fillEllipse (x - handleR,        y - handleR,        handleR * 2.0f,        handleR * 2.0f);
-        g.setColour (fill); g.fillEllipse (x - handleR + 2.0f, y - handleR + 2.0f, (handleR - 2.0f) * 2.0f, (handleR - 2.0f) * 2.0f);
+        g.setColour (ring.withAlpha (0.30f));   // soft halo
+        g.fillEllipse (x - handleR - 5.0f, y - handleR - 5.0f,
+                       (handleR + 5.0f) * 2.0f, (handleR + 5.0f) * 2.0f);
+        g.setColour (juce::Colour (0xff232842)); // dark core
+        g.fillEllipse (x - handleR, y - handleR, handleR * 2.0f, handleR * 2.0f);
+        g.setColour (ring);                      // crisp pastel ring
+        g.drawEllipse (x - handleR, y - handleR, handleR * 2.0f, handleR * 2.0f, 2.5f);
     }
 
     WhooshAudioProcessor& proc;
