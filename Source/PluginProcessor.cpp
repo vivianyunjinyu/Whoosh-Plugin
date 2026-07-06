@@ -98,7 +98,6 @@ void WhooshAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     
     // waveform scope setup (UI)
     scopeBuffer.fill (0.0f);
-    lastScopePhase = 0.0f;
 }
 
 void WhooshAudioProcessor::releaseResources()
@@ -167,6 +166,9 @@ void WhooshAudioProcessor::regenerateCurveTable (float floorLevel, float recover
 void WhooshAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals; //CPU safety; treat tiny numbers as plain 0's
+    
+    if (getSampleRate() <= 0.0) return; //safety, preventing ppqPerSample from dividing by 0
+    
     auto* const* channelData = buffer.getArrayOfWritePointers(); //get write pointers of all channels
     const int numSamples = buffer.getNumSamples();
     const int totalNumOutputChannels = getTotalNumOutputChannels();
@@ -191,7 +193,7 @@ void WhooshAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
             
     //Cycle calculations-------------------------------------------------------------------------
     //access user choice of cycle
-    const int rateIndex = (int) *rateParam;
+    const int rateIndex = juce::jlimit (0, 4, (int) *rateParam);
     const double cycleTable[] = {4.0, 2.0, 1.0, 0.5, 0.25}; //1/1, 1/2, 1/4, 1/8, 1/16
     const double cycleQuarters = cycleTable[rateIndex];
     
@@ -235,7 +237,7 @@ void WhooshAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         //read lookup table
         float tablePos = phase * (float) tableSize; //calculate corresponding index in table
         //linear interpolation
-            int index0 = (int) tablePos; //round tablePos down
+            int index0 = juce::jmin ((int) tablePos, tableSize - 1); //round tablePos down
             int index1 = (index0 + 1) % tableSize; //next index above tablePos, wrap around if necessary
             float frac = tablePos - (float) index0; //how far tablePos is from index0
         
