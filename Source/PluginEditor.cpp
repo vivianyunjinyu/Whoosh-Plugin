@@ -10,24 +10,37 @@ void CurveDisplay::paint (juce::Graphics& g)
 
     auto b = getLocalBounds().toFloat().reduced (8.0f);
 
-    // drop shadow behind the panel (makes it float)
+    // soft dark shadow so the panel still lifts off the body
     juce::Path panelPath;
-    panelPath.addRoundedRectangle (b, 12.0f);
-    juce::DropShadow (juce::Colour (0x552A4A6B), 14, { 0, 5 }).drawForPath (g, panelPath);
+    panelPath.addRoundedRectangle (b, 14.0f);
+    juce::DropShadow (juce::Colour (0xaa05070f), 16, { 0, 5 }).drawForPath (g, panelPath);
 
-    // panel fill: subtle top-to-bottom sheen
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xffFFFFFF), b.getX(), b.getY(),
-                                             juce::Colour (0xffE7F2FB), b.getX(), b.getBottom(), false));
-    g.fillRoundedRectangle (b, 12.0f);
+    // inset "void" panel: darker than the body so glowing elements read as light
+    g.setColour (juce::Colour (0xff121525));
+    g.fillRoundedRectangle (b, 14.0f);
 
-    // grid (faint)
-    g.setColour (juce::Colour (0x33B9D6EE));
+    // grid (dim slate lines)
+    g.setColour (juce::Colour (0xff2C3254));
     for (int i = 1; i < 4; ++i)
     {
         const float y = ampToY (i / 4.0f);
         g.drawLine (phaseToX (0.0f), y, phaseToX (1.0f), y, 1.0f);
         const float x = phaseToX (i / 4.0f);
         g.drawLine (x, ampToY (0.0f), x, ampToY (1.0f), 1.0f);
+    }
+
+    // tiny pastel star specks in the corners
+    {
+        auto star = [&] (float sx, float sy, float r, juce::Colour c)
+        {
+            g.setColour (c);
+            g.fillEllipse (sx - r, sy - r, r * 2.0f, r * 2.0f);
+        };
+        star (b.getRight() - 40.0f, b.getY() + 18.0f, 1.5f, juce::Colour (0xff8FD8EA));
+        star (b.getRight() - 64.0f, b.getY() + 36.0f, 1.0f, juce::Colour (0xffF48FB8));
+        star (b.getRight() - 24.0f, b.getY() + 50.0f, 1.2f, juce::Colour (0xffC9B7F5));
+        star (b.getX() + 28.0f,     b.getY() + 30.0f, 1.2f, juce::Colour (0xffC9B7F5));
+        star (b.getX() + 52.0f,     b.getY() + 16.0f, 1.0f, juce::Colour (0xffF48FB8));
     }
 
     // --- live output waveform (one cycle, phase-aligned), clipped to panel ---
@@ -55,7 +68,7 @@ void CurveDisplay::paint (juce::Graphics& g)
             wave.lineTo (x, midY + v * halfH);
         }
         wave.closeSubPath();
-        g.setColour (juce::Colour (0x552E5C88));   // faint blue waveform
+        g.setColour (juce::Colour (0x446FD8E8));   // faint holographic cyan
         g.fillPath (wave);
     }
 
@@ -69,39 +82,30 @@ void CurveDisplay::paint (juce::Graphics& g)
         curve.lineTo (phaseToX (ph), ampToY (curveGain (ph, floorLevel, recovery, type)));
     }
 
-    // fill under the curve: light near the line -> deep blue at the bottom (depth)
+    // fill under the curve: translucent pink up top fading to faint purple below
     juce::Path fill = curve;
     fill.lineTo (phaseToX (1.0f), ampToY (0.0f));
     fill.lineTo (phaseToX (0.0f), ampToY (0.0f));
     fill.closeSubPath();
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0x558FBEE4), b.getX(), ampToY (1.0f),
-                                             juce::Colour (0xAA3B6690), b.getX(), ampToY (0.0f), false));
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0x48F48FB8), b.getX(), ampToY (1.0f),
+                                             juce::Colour (0x1A7C5CBF), b.getX(), ampToY (0.0f), false));
     g.fillPath (fill);
 
-    // soft under-stroke behind the line for lift, then the crisp line
-    g.setColour (juce::Colour (0x554A7BA8));
-    g.strokePath (curve, juce::PathStrokeType (4.5f));
-    g.setColour (juce::Colour (0xff5E97CE));
+    // neon glow: two wide low-alpha strokes underneath, then the crisp line
+    g.setColour (juce::Colour (0x30F48FB8));
+    g.strokePath (curve, juce::PathStrokeType (9.0f));
+    g.setColour (juce::Colour (0x55F48FB8));
+    g.strokePath (curve, juce::PathStrokeType (5.5f));
+    g.setColour (juce::Colour (0xffF48FB8));
     g.strokePath (curve, juce::PathStrokeType (2.5f));
 
-    // handle shadows (so the dots sit on top of the surface)
-    auto handleShadow = [&] (float hx, float hy)
-    {
-        g.setColour (juce::Colour (0x33244463));
-        g.fillEllipse (hx - handleR, hy - handleR + 3.0f, handleR * 2.0f, handleR * 2.0f);
-    };
-    handleShadow (phaseToX (0.0f),     ampToY (floorLevel));
-    handleShadow (phaseToX (recovery), ampToY (1.0f));
-
-    // handles
-    drawHandle (g, phaseToX (0.0f), ampToY (floorLevel),
-                juce::Colour (0xffF7A8C4), juce::Colour (0xffE87FA8));   // point A (pink)
-    drawHandle (g, phaseToX (recovery), ampToY (1.0f),
-                juce::Colour (0xff7FC8E3), juce::Colour (0xff4FA8CC));   // point B (aqua)
+    // handles: dark bead + glowing pastel ring (pink = point A, aqua = point B)
+    drawHandle (g, phaseToX (0.0f),    ampToY (floorLevel), juce::Colour (0xffF48FB8));
+    drawHandle (g, phaseToX (recovery), ampToY (1.0f),      juce::Colour (0xff8FD8EA));
 
     // border
-    g.setColour (juce::Colour (0xffCFE4F5));
-    g.drawRoundedRectangle (b, 12.0f, 1.5f);
+    g.setColour (juce::Colour (0xff454C7A));
+    g.drawRoundedRectangle (b, 14.0f, 1.0f);
 }
 
 void CurveDisplay::mouseDown (const juce::MouseEvent& e)
@@ -137,7 +141,7 @@ WhooshAudioProcessorEditor::WhooshAudioProcessorEditor (WhooshAudioProcessor& p)
 
     addAndMakeVisible (curveDisplay);
 
-    rateBox.addItemList ({ "1/1", "1/4", "1/8", "1/16" }, 1);
+    rateBox.addItemList ({ "1/1", "1/2", "1/4", "1/8", "1/16" }, 1);
     curveBox.addItemList ({ "Exponential", "Logarithmic", "Linear" }, 1);
     addAndMakeVisible (rateBox);
     addAndMakeVisible (curveBox);
@@ -154,14 +158,14 @@ WhooshAudioProcessorEditor::WhooshAudioProcessorEditor (WhooshAudioProcessor& p)
 
     titleLabel.setText ("Whoosh", juce::dontSendNotification);
     titleLabel.setFont (juce::Font (32.0f, juce::Font::bold));
-    titleLabel.setColour (juce::Label::textColourId, juce::Colour (0xff3B5E80)); // deep blue
+    titleLabel.setColour (juce::Label::textColourId, juce::Colour (0xffF1F4FF)); // near-white on navy
     titleLabel.setJustificationType (juce::Justification::centred);
     addAndMakeVisible (titleLabel);
 
-    subtitleLabel.setText ("vivian creations, made with lookup table and love :)",
+    subtitleLabel.setText ("vivian creations, made with a 10-bit lookup table and love :)",
                            juce::dontSendNotification);
     subtitleLabel.setFont (juce::Font (15.0f, juce::Font::italic));
-    subtitleLabel.setColour (juce::Label::textColourId, juce::Colour (0xffE87FA8)); // pink
+    subtitleLabel.setColour (juce::Label::textColourId, juce::Colour (0xffF48FB8)); // pastel pink
     subtitleLabel.setJustificationType (juce::Justification::centred);
     addAndMakeVisible (subtitleLabel);
 
@@ -175,8 +179,8 @@ WhooshAudioProcessorEditor::~WhooshAudioProcessorEditor()
 
 void WhooshAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    g.setGradientFill (juce::ColourGradient (juce::Colour (0xffF4F9FD), 0.0f, 0.0f,
-                                             juce::Colour (0xffD7E7F6), 0.0f, (float) getHeight(), false));
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff232842), 0.0f, 0.0f,
+                                             juce::Colour (0xff181C30), 0.0f, (float) getHeight(), false));
     g.fillAll();
 }
 
