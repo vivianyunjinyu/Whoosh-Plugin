@@ -22,3 +22,6 @@ I built a tempo-synced volume LFO plugin with the JUCE framework in C++ inspired
 - Curve read: linear interpolation
 - Curve shapes: single power function (t^p) with p = 3 / 0.33 / 1
 - Sync: host PPQ phase-locked, re-anchored every block, with a free-running fallback clock when the transport is stopped
+
+## Quick Demo: 
+[Youtube Link](https://youtu.be/NA_pJLrwPFc)
